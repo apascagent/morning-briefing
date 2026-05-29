@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morning Briefing — Bain Capital Real Estate</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --ink: #1a1410;
+    --paper: #f5f0e8;
+    --cream: #ede7d9;
+    --rust: #c4460a;
+    --gold: #b8922a;
+    --muted: #7a6f62;
+    --rule: #d4c9b8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* MASTHEAD */
+  .masthead {
+    border-bottom: 3px double var(--ink);
+    padding: 20px 32px 14px;
+    text-align: center;
+    background: var(--paper);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .masthead-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .masthead h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .masthead-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 5px;
+  }
+  .masthead-date {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* CONTROLS BAR */
+  .controls-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 32px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--cream);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .generate-btn {
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 9px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .generate-btn:hover { background: var(--rust); }
+  .generate-btn:disabled { background: var(--muted); cursor: not-allowed; }
+
+  .playback-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .play-btn {
+    background: var(--rust);
+    color: white;
+    border: none;
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.15s;
+    flex-shrink: 0;
+  }
+  .play-btn:hover { transform: scale(1.08); }
+  .play-btn:disabled { background: var(--muted); cursor: not-allowed; }
+
+  .tts-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  .speed-select {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+    padding: 4px 6px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  /* PROGRESS BAR */
+  .progress-wrap {
+    padding: 0 32px;
+    background: var(--cream);
+    border-bottom: 1px solid var(--rule);
+    display: none;
+  }
+  .progress-wrap.visible { display: block; padding-bottom: 8px; padding-top: 6px; }
+  .progress-track {
+    height: 3px;
+    background: var(--rule);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--rust);
+    width: 0%;
+    transition: width 0.3s;
+  }
+  .progress-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.1em;
+  }
+
+  /* MAIN LAYOUT */
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+  }
+
+  /* STATE SCREENS */
+  .state-idle, .state-loading, .state-error {
+    text-align: center;
+    padding: 60px 20px;
+  }
+  .state-idle .big-date {
+    font-family: 'Playfair Display', serif;
+    font-size: 72px;
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .state-idle .tagline {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    color: var(--muted);
+    font-size: 16px;
+    margin-bottom: 28px;
+  }
+  .state-idle .sector-pills {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+  .pill {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    border: 1px solid var(--rule);
+    padding: 4px 10px;
+    color: var(--muted);
+  }
+  .pill.active { border-color: var(--rust); color: var(--rust); }
+
+  .spinner {
+    width: 32px; height: 32px;
+    border: 2px solid var(--rule);
+    border-top-color: var(--rust);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .loading-step {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    min-height: 18px;
+    transition: opacity 0.3s;
+  }
+
+  /* BRIEFING CONTENT */
+  .briefing { display: none; }
+  .briefing.visible { display: block; }
+
+  .section-block {
+    margin-bottom: 32px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 28px;
+    animation: fadeUp 0.4s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .section-block:nth-child(1) { animation-delay: 0.05s; }
+  .section-block:nth-child(2) { animation-delay: 0.10s; }
+  .section-block:nth-child(3) { animation-delay: 0.15s; }
+  .section-block:nth-child(4) { animation-delay: 0.20s; }
+  .section-block:nth-child(5) { animation-delay: 0.25s; }
+  .section-block:nth-child(6) { animation-delay: 0.30s; }
+  .section-block:nth-child(7) { animation-delay: 0.35s; }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .section-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .section-duration {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--rust);
+    letter-spacing: 0.1em;
+    margin-left: auto;
+  }
+
+  .section-content {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.75;
+    color: #2a2420;
+  }
+  .section-content p { margin-bottom: 10px; }
+  .section-content p:last-child { margin-bottom: 0; }
+
+  .highlight-box {
+    border-left: 3px solid var(--rust);
+    padding: 10px 14px;
+    background: var(--cream);
+    margin: 14px 0;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .active-section {
+    background: #fff9f0;
+    border-radius: 2px;
+    padding: 2px 0;
+  }
+
+  /* WEEKLY FRIDAY BOX */
+  .friday-box {
+    border: 2px solid var(--ink);
+    padding: 20px;
+    margin-top: 8px;
+  }
+  .friday-box h4 {
+    font-family: 'Playfair Display', serif;
+    font-size: 14px;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .friday-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .friday-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--rust);
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  /* ERROR */
+  .error-msg {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--rust);
+    padding: 16px;
+    border: 1px solid var(--rust);
+    margin-top: 16px;
+    text-align: left;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+  
+  /* READING HIGHLIGHT */
+  .word-highlight { background: #ffe8d0; }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="masthead-eyebrow">Bain Capital Real Estate Working Group</div>
+  <h1>The Morning Briefing</h1>
+  <div class="masthead-sub">Healthcare · Studios · Aerospace · Digital Infrastructure · Capital Markets</div>
+  <div class="masthead-date" id="todayDate"></div>
+</div>
+
+<div class="controls-bar">
+  <button class="generate-btn" id="generateBtn" onclick="generateBriefing()">▸ Generate Today's Briefing</button>
+  <div class="playback-controls">
+    <select class="speed-select" id="speedSelect">
+      <option value="0.9">0.9×</option>
+      <option value="1" selected>1.0×</option>
+      <option value="1.15">1.15×</option>
+      <option value="1.3">1.3×</option>
+      <option value="1.5">1.5×</option>
+    </select>
+    <button class="play-btn" id="playBtn" onclick="togglePlay()" disabled title="Generate briefing first">▶</button>
+    <span class="tts-status" id="ttsStatus">—</span>
+  </div>
+</div>
+
+<div class="progress-wrap" id="progressWrap">
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-label" id="progressLabel"></div>
+</div>
+
+<div class="container">
+
+  <div class="state-idle" id="stateIdle">
+    <div class="big-date" id="bigDate"></div>
+    <div class="tagline">Your edge starts here.</div>
+    <div class="sector-pills">
+      <span class="pill active">Macro & Markets</span>
+      <span class="pill active">Real Estate</span>
+      <span class="pill active">Healthcare RE</span>
+      <span class="pill active">Media & Studios</span>
+      <span class="pill active">Aerospace & Defense</span>
+      <span class="pill active">AI & Digital Infra</span>
+    </div>
+    <p style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;">30–45 MIN · DAILY</p>
+  </div>
+
+  <div class="state-loading" id="stateLoading" style="display:none;">
+    <div class="spinner"></div>
+    <div class="loading-text">Scanning Markets</div>
+    <div class="loading-step" id="loadingStep">Connecting to live sources...</div>
+  </div>
+
+  <div class="state-error" id="stateError" style="display:none;">
+    <p style="font-family:'Playfair Display',serif;font-size:18px;">Something went wrong.</p>
+    <div class="error-msg" id="errorMsg"></div>
+    <button class="generate-btn" onclick="generateBriefing()" style="margin-top:16px;">Try Again</button>
+  </div>
+
+  <div class="briefing" id="briefingContent"></div>
+
+</div>
+
+<script>
+// ─── DATE SETUP ───────────────────────────────────────────────────
+const now = new Date();
+const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const dayName = dayNames[now.getDay()];
+const isFriday = now.getDay() === 5;
+const dateStr = `${dayName}, ${monthNames[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`;
+document.getElementById('todayDate').textContent = dateStr;
+document.getElementById('bigDate').textContent = String(now.getDate()).padStart(2,'0');
+
+// ─── TTS STATE ────────────────────────────────────────────────────
+let utterances = [];
+let currentUtterance = 0;
+let isPlaying = false;
+let speechSynth = window.speechSynthesis;
+let allText = '';
+let wordCount = 0;
+
+function togglePlay() {
+  if (isPlaying) {
+    speechSynth.pause();
+    isPlaying = false;
+    document.getElementById('playBtn').textContent = '▶';
+    document.getElementById('ttsStatus').textContent = 'Paused';
+  } else {
+    if (speechSynth.paused) {
+      speechSynth.resume();
+    } else {
+      startSpeech();
+    }
+    isPlaying = true;
+    document.getElementById('playBtn').textContent = '⏸';
+    document.getElementById('ttsStatus').textContent = 'Playing...';
+  }
+}
+
+function startSpeech() {
+  speechSynth.cancel();
+  const speed = parseFloat(document.getElementById('speedSelect').value);
+  const sections = document.querySelectorAll('.section-content');
+  utterances = [];
+  
+  // Build section texts
+  const sectionData = [];
+  sections.forEach((sec, i) => {
+    const title = sec.closest('.section-block')?.querySelector('.section-title')?.textContent || '';
+    const text = sec.innerText;
+    sectionData.push({ title, text, el: sec });
+  });
+
+  let secIndex = 0;
+  function speakNext() {
+    if (secIndex >= sectionData.length) {
+      isPlaying = false;
+      document.getElementById('playBtn').textContent = '▶';
+      document.getElementById('ttsStatus').textContent = 'Complete';
+      document.getElementById('progressFill').style.width = '100%';
+      return;
+    }
+    const sd = sectionData[secIndex];
+    const u = new SpeechSynthesisUtterance(sd.text);
+    u.rate = speed;
+    u.pitch = 1.0;
+    
+    // Highlight active section
+    document.querySelectorAll('.section-content').forEach(e => e.classList.remove('active-section'));
+    sd.el.classList.add('active-section');
+    sd.el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    
+    // Update progress
+    const pct = Math.round((secIndex / sectionData.length) * 100);
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = `Section ${secIndex+1} of ${sectionData.length} — ${sd.title}`;
+    document.getElementById('ttsStatus').textContent = sd.title.substring(0,22) + '…';
+    
+    u.onend = () => { secIndex++; speakNext(); };
+    u.onerror = () => { secIndex++; speakNext(); };
+    speechSynth.speak(u);
+  }
+  speakNext();
+}
+
+// ─── GENERATE BRIEFING ────────────────────────────────────────────
+async function generateBriefing() {
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.textContent = '● Generating...';
+  document.getElementById('playBtn').disabled = true;
+  
+  document.getElementById('stateIdle').style.display = 'none';
+  document.getElementById('stateError').style.display = 'none';
+  document.getElementById('briefingContent').classList.remove('visible');
+  document.getElementById('stateLoading').style.display = 'block';
+  document.getElementById('progressWrap').classList.remove('visible');
+  speechSynth.cancel();
+  isPlaying = false;
+
+  const steps = [
+    'Scanning WSJ Markets & FT...',
+    'Checking PERE & Commercial Observer...',
+    'Pulling Modern Healthcare & Healthcare Dive...',
+    'Reviewing Deadline, Variety, THR...',
+    'Scanning Defense News & Aviation Week...',
+    'Checking Data Center Dynamics & SemiAnalysis...',
+    'Synthesizing your briefing...'
+  ];
+  let stepI = 0;
+  const stepEl = document.getElementById('loadingStep');
+  const stepInterval = setInterval(() => {
+    if (stepI < steps.length) stepEl.textContent = steps[stepI++];
+  }, 1400);
+
+  try {
+    const systemPrompt = `You are a senior analyst preparing a daily spoken morning briefing for Amelia, a professional joining Bain Capital Real Estate's Working Group. The briefing should sound natural when read aloud — like a high-quality podcast or radio show, not a bullet-point list.
+
+Today is ${dateStr}. ${isFriday ? "Today is FRIDAY — include the weekly reflection section." : ""}
+
+Your job: search the web for today's real headlines and data across these sectors, then synthesize them into a cohesive, insightful briefing. Use real, current information. Be specific about companies, numbers, and deals where possible.
+
+Format the response as a JSON object with this exact structure:
+{
+  "intro": "2-3 sentence warm spoken opener that sets the tone for the day",
+  "sections": [
+    {
+      "id": "macro",
+      "title": "Macro & Markets",
+      "duration": "10–12 min",
+      "content": "3-4 flowing paragraphs of spoken content covering Treasury yields, credit spreads, inflation data, major M&A, defense spending, AI infrastructure announcements. End with: 'The key question for your underwriting today: [specific question based on today's news]'"
+    },
+    {
+      "id": "realestate", 
+      "title": "Real Estate Capital Markets",
+      "duration": "8–10 min",
+      "content": "3-4 paragraphs covering fundraising, GP launches, recapitalizations, distress signals, lending markets, sector performance. Be specific about firms and transactions."
+    },
+    {
+      "id": "healthcare",
+      "title": "Healthcare Real Estate",
+      "duration": "5–6 min",
+      "content": "2-3 paragraphs on hospital consolidation, outpatient migration, MOB demand, senior housing. Note: this is Bain's highest-emphasis sector. Conclude with one sharp thesis statement about the current moment."
+    },
+    {
+      "id": "studios",
+      "title": "Media, Entertainment & Studios",
+      "duration": "4–5 min",
+      "content": "2-3 paragraphs on studio utilization, production volume, streaming profitability, content spending. Address whether studio real estate demand looks cyclical or structural right now."
+    },
+    {
+      "id": "aerospace",
+      "title": "Aerospace, Defense & Aviation",
+      "duration": "4–5 min",
+      "content": "2-3 paragraphs covering defense budgets, aircraft production, drone manufacturing, space infrastructure, airport ecosystem. Flag where Bain's differentiated thematics may emerge."
+    },
+    {
+      "id": "digital",
+      "title": "AI & Digital Infrastructure",
+      "duration": "4–5 min",
+      "content": "2-3 paragraphs on power constraints, AI capex trends, GPU deployments, data center leasing, utility announcements. Reference the Ryan Cotton thesis on this remaining a major focus."
+    }
+  ],
+  ${isFriday ? `"friday": {
+    "transaction": "Most interesting transaction announced this week and why",
+    "macro": "Most important macro development and its real estate implications",
+    "stronger": "One sector getting structurally stronger — with specific evidence",
+    "weaker": "One sector showing strain — with specific evidence",
+    "thematic": "One new thematic Bain should potentially pursue and the 2-sentence investment thesis"
+  },` : ''}
+  "close": "1-2 sentence sharp closing line that reinforces the 'why?' muscle — what's the one thing to carry into meetings today"
+}
+
+Write every section as natural, flowing, spoken prose. No bullet points. No headers within sections. Specific. Confident. Analytically sharp. The tone is like a Bloomberg Intelligence analyst who also happens to be a great podcast host.`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4000,
+        tools: [{ type: "web_search_20250305", name: "web_search" }],
+        system: systemPrompt,
+        messages: [{ role: "user", content: `Generate today's morning briefing for ${dateStr}. Search for real current news and data across all six sectors. Make it specific and substantive.` }]
+      })
+    });
+
+    clearInterval(stepInterval);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error?.message || `API error ${response.status}`);
+    }
+
+    // Extract text from response
+    let rawText = '';
+    for (const block of data.content) {
+      if (block.type === 'text') rawText += block.text;
+    }
+
+    // Parse JSON
+    const cleaned = rawText.replace(/```json\s*/g,'').replace(/```\s*/g,'').trim();
+    let briefing;
+    try {
+      briefing = JSON.parse(cleaned);
+    } catch(e) {
+      // Try to extract JSON from the text
+      const match = cleaned.match(/\{[\s\S]*\}/);
+      if (match) briefing = JSON.parse(match[0]);
+      else throw new Error('Could not parse briefing JSON: ' + cleaned.substring(0,200));
+    }
+
+    renderBriefing(briefing);
+
+  } catch(err) {
+    clearInterval(stepInterval);
+    document.getElementById('stateLoading').style.display = 'none';
+    document.getElementById('stateError').style.display = 'block';
+    document.getElementById('errorMsg').textContent = err.message || String(err);
+    btn.disabled = false;
+    btn.textContent = '▸ Generate Today\'s Briefing';
+  }
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────
+function renderBriefing(data) {
+  document.getElementById('stateLoading').style.display = 'none';
+  
+  const sectionMeta = {
+    macro:      { num: '01', emoji: '📈' },
+    realestate: { num: '02', emoji: '🏢' },
+    healthcare: { num: '03', emoji: '⚕️' },
+    studios:    { num: '04', emoji: '🎬' },
+    aerospace:  { num: '05', emoji: '✈️' },
+    digital:    { num: '06', emoji: '⚡' },
+  };
+
+  let html = '';
+
+  // Intro
+  html += `<div class="section-block">
+    <div style="text-align:center;padding:10px 0 20px;">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;">Good Morning</div>
+      <div class="section-content" style="font-family:'Playfair Display',serif;font-style:italic;font-size:16px;line-height:1.7;color:var(--ink);">${escHtml(data.intro)}</div>
+    </div>
+  </div>`;
+
+  // Main sections
+  (data.sections || []).forEach((sec, i) => {
+    const meta = sectionMeta[sec.id] || { num: String(i+1).padStart(2,'0'), emoji: '◆' };
+    html += `<div class="section-block">
+      <div class="section-header">
+        <span class="section-number">${meta.num}</span>
+        <span class="section-title">${escHtml(sec.title)}</span>
+        <span class="section-duration">${escHtml(sec.duration || '')}</span>
+      </div>
+      <div class="section-content">${formatContent(sec.content)}</div>
+    </div>`;
+  });
+
+  // Friday section
+  if (data.friday) {
+    html += `<div class="section-block">
+      <div class="section-header">
+        <span class="section-number">WK</span>
+        <span class="section-title">Friday Reflection</span>
+        <span class="section-duration">15 min</span>
+      </div>
+      <div class="section-content">
+        <div class="friday-box">
+          <h4>Weekly Synthesis</h4>
+          <div class="friday-item"><span class="friday-num">01</span><span><strong>Transaction of the week:</strong> ${escHtml(data.friday.transaction)}</span></div>
+          <div class="friday-item"><span class="friday-num">02</span><span><strong>Macro development:</strong> ${escHtml(data.friday.macro)}</span></div>
+          <div class="friday-item"><span class="friday-num">03</span><span><strong>Getting stronger:</strong> ${escHtml(data.friday.stronger)}</span></div>
+          <div class="friday-item"><span class="friday-num">04</span><span><strong>Getting weaker:</strong> ${escHtml(data.friday.weaker)}</span></div>
+          <div class="friday-item"><span class="friday-num">05</span><span><strong>New Bain thematic:</strong> ${escHtml(data.friday.thematic)}</span></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Close
+  if (data.close) {
+    html += `<div class="section-block" style="border-bottom:none;">
+      <div class="highlight-box">${escHtml(data.close)}</div>
+    </div>`;
+  }
+
+  const el = document.getElementById('briefingContent');
+  el.innerHTML = html;
+  el.classList.add('visible');
+
+  document.getElementById('progressWrap').classList.add('visible');
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressLabel').textContent = 'Ready to play';
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = false;
+  btn.textContent = '↺ Regenerate';
+  document.getElementById('playBtn').disabled = false;
+  document.getElementById('ttsStatus').textContent = 'Ready';
+}
+
+function formatContent(text) {
+  if (!text) return '';
+  return text.split(/\n\n+/).map(p => p.trim()).filter(Boolean)
+    .map(p => `<p>${escHtml(p)}</p>`).join('');
+}
+
+function escHtml(s) {
+  if (!s) return '';
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
